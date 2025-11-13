@@ -1,0 +1,28 @@
+version: '3.9'
+services:
+  api:
+    build: .
+    container_name: supalocker-api
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URI=mongodb://mongo:27017/supalocker
+      - CORS_ORIGIN=*
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL}
+      - WEB3_STORAGE_TOKEN=${WEB3_STORAGE_TOKEN}
+      - ISSUER_DID=${ISSUER_DID}
+      - ISSUER_JWT_SECRET=${ISSUER_JWT_SECRET}
+      - MAX_UPLOAD_MB=25
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:7
+    container_name: supalocker-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+volumes:
+  mongo_data:
