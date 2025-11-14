@@ -45,4 +45,39 @@ async function storeJSON(json) {
   return storeWithWeb3(json);
 }
 
-module.exports = { storeJSON };
+async function storeFile(buffer) {
+  if (process.env.PINATA_JWT) {
+    const jwt = process.env.PINATA_JWT;
+    if (!jwt) throw new Error('PINATA_JWT not set');
+
+    const formData = new (require('form-data'))();
+    formData.append('file', buffer, {
+      filename: 'original.pdf',
+      contentType: 'application/pdf',
+    });
+
+    const resp = await axios.post(
+      'https://api.pinata.cloud/pinning/pinFileToIPFS',
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${jwt}`,
+        },
+        maxBodyLength: Infinity,
+        timeout: 30000,
+      }
+    );
+
+    const cid = resp.data?.IpfsHash;
+    if (!cid) throw new Error('Pinata did not return IpfsHash for file');
+    return cid;
+  }
+
+  const client = getWeb3Client();
+  const files = [new File([buffer], 'original.pdf', { type: 'application/pdf' })];
+  const cid = await client.put(files, { wrapWithDirectory: false });
+  return cid;
+}
+
+module.exports = { storeJSON, storeFile };

@@ -5,7 +5,7 @@ const DID = require('../models/DID');
 const Credential = require('../models/Credential');
 const { extractStructuredData } = require('../services/aiService');
 const { aesGcmEncrypt, wrapKeyWithRecipientX25519 } = require('../services/cryptoService');
-const { storeJSON } = require('../services/ipfsService');
+const { storeJSON, storeFile } = require('../services/ipfsService');
 const { issueVC } = require('../services/vcService');
 const { ed25519PubFromDidKey } = require('../utils/parseDid');
 
@@ -52,19 +52,23 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const cid = await storeJSON(toStore);
 
+    // Store original PDF file separately for download
+    const originalCid = await storeFile(req.file.buffer);
+
     const issuerDid = process.env.ISSUER_DID || 'did:example:issuer';
     const vc = issueVC({ issuerDid, holderDid: ownerDID, cid, claims: extracted.safeFields || {} });
 
     const saved = await Credential.create({
       ownerDID,
       cid,
+      originalCid,
       docType: extracted.docType || '',
       safeFields: extracted.safeFields || {},
       encryptedFields: JSON.stringify(encryptedPayload),
       vc,
     });
 
-    return res.json({ cid, vc, docType: saved.docType, safeFields: saved.safeFields });
+    return res.json({ cid, originalCid, vc, docType: saved.docType, safeFields: saved.safeFields });
   } catch (e) {
     console.error('upload error', e);
     return res.status(500).json({ message: 'upload failed', error: e.message });

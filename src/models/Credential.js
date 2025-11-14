@@ -7,6 +7,7 @@ const CredentialSchema = new mongoose.Schema({
   safeFields: { type: Object, required: true },
   encryptedFields: { type: String, required: true },
   vc: { type: String, required: true },
+  originalCid: { type: String },
   revoked: { type: Boolean, default: false },
 }, { timestamps: true });
 
